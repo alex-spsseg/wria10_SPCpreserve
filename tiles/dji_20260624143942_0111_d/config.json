@@ -1,0 +1,34 @@
+{
+  "mode": "single",
+  "format": "raw",
+  "yaw_1": -2.437202659736773,
+  "pitch_1": 1.2757904474892694,
+  "yaw_2": 0.0,
+  "pitch_2": 0.0,
+  "lat": 47.133442555555554,
+  "lng": -122.12565555555555,
+  "label_1": "DJI_20260624143942_0111_D (2026/06/24)",
+  "label_2": "",
+  "autorotate": false,
+  "hotspots_1": [],
+  "hotspots_2": [],
+  "levels_1": [],
+  "levels_2": [],
+  "pin_style": "dot",
+  "basemap_type": "xyz_tile",
+  "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+  "mobile_1": 5000,
+  "mobile_2": 0,
+  "heading_offset": 348.60353300156373,
+  "overlays": [
+    {
+      "label": "Ortho (1/21/2026)",
+      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/SPCpreserve_20260121_jp2/MapServer/tile/{z}/{y}/{x}",
+      "opacity": 1.0,
+      "default_on": true,
+      "type": "tile"
+    }
+  ],
+  "platform": "aerial",
+  "heading_confirmed": true
+}
