@@ -2,8 +2,8 @@
 
 # WRIA 10 — Spc Preserve
 
+Live site: [All tours](https://alex-spsseg.github.io/wria10_SPCpreserve/tours.html)
+
 ## Tours
 
-- Bathymetry Survey (54cfs) (visited 2026-06-24, 57 stops)
-
-Links need a GitHub origin on this repo; publish again once it is set up.
+- [2026 Bathymetry Survey (54cfs)](https://alex-spsseg.github.io/wria10_SPCpreserve/index.html?tour=20260624) (visited 2026-06-24, 57 stops)
