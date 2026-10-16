@@ -755,7 +755,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-15 16:52:07</div>
+  <div id="build-timestamp">Built 2026-10-15 17:14:21</div>
 
   <div id="status-banner"></div>
 
@@ -947,6 +947,107 @@
                                   // View / hotspot editing / Save Hotspots to target
     var activeTourScene = null;  // that stop's live Marzipano scene, for placing
                                   // new hotspots onto it
+
+    // Staged loading of a stop's photo on a desktop screen. The phone sized copy (about a quarter of the size)
+    // loads first so the stop appears quickly, then the full size photo loads in the background and replaces it
+    // in place, with the same view, hotspots and zoom. It starts only after the viewer has stayed on the stop for
+    // a moment, is dropped if they move on, and is skipped on slow or data saving connections.
+    var stopUpgradeTimer = null, stopUpgradeImg = null;
+    var stopPrefetched = {}, stopPrefetchImgs = [];
+    var tourCaches = { config: {}, scene: {} }; // the tour page's own caches, shared here once it starts
+    function connectionIsSlow() {
+      var conn = navigator.connection || {};
+      return !!(conn.saveData || /^(slow-2g|2g|3g)$/.test(conn.effectiveType || ''));
+    }
+    function cancelStopUpgrade() {
+      clearTimeout(stopUpgradeTimer);
+      stopUpgradeTimer = null;
+      if (stopUpgradeImg) {
+        stopUpgradeImg.onload = null;
+        stopUpgradeImg.onerror = null;
+        stopUpgradeImg.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='; // stops the download
+        stopUpgradeImg = null;
+      }
+    }
+    // Once the stop on screen is as sharp as it will get, quietly fetch the next stop's small copy (about 5 MB)
+    // so pressing Next shows it almost at once. Skipped on slow or data saving connections.
+    function prefetchNextStop(currentSid) {
+      if (connectionIsSlow()) return;
+      var norm = function (x) { return String(x || '').trim().toLowerCase().replace(/[\s-]+/g, '_'); };
+      var opts = tourSiteOptions || [];
+      var i = -1;
+      for (var k = 0; k < opts.length; k++) { if (norm(opts[k].site_id) === currentSid) { i = k; break; } }
+      if (i < 0 || i + 1 >= opts.length) return;
+      var nsid = norm(opts[i + 1].site_id);
+      if (stopPrefetched[nsid] || tourCaches.scene[nsid]) return;
+      stopPrefetched[nsid] = true;
+      var cfgPromise = tourCaches.config[nsid] ? Promise.resolve(tourCaches.config[nsid])
+          : fetch('tiles/' + nsid + '/config.json', { cache: 'no-store' })
+              .then(function (res) { return res.ok ? res.json() : null; })
+              .then(function (cfg) { if (cfg) tourCaches.config[nsid] = cfg; return cfg; });
+      cfgPromise.then(function (cfg) {
+        if (!cfg) return;
+        var c = normalizeLocationConfig(cfg, tourPhotoIdFor(nsid), true);
+        if (c.mode === 'flat' || c.format === 'tiled' || !c.mobile_1) return;
+        var img = new Image();
+        stopPrefetchImgs.push(img); // keep a reference so the download is not dropped
+        img.src = 'tiles/' + nsid + '/' + (c._imgName || 'img1') + '_mobile.jpg';
+      }).catch(function () { /* a failed prefetch changes nothing */ });
+    }
+    function startStopUpgrade(upg) {
+      if (!upg || upg.done) return;
+      cancelStopUpgrade();
+      if (connectionIsSlow()) return;
+      var conn = navigator.connection || {};
+      // Start almost at once on a connection that looks fast; give a slower one a moment so a quick click-through
+      // does not start a big download that is then thrown away.
+      var delay = (conn.downlink == null || conn.downlink >= 5) ? 400 : 1500;
+      stopUpgradeTimer = setTimeout(function () {
+        var img = new Image();
+        stopUpgradeImg = img;
+        img.onload = function () {
+          stopUpgradeImg = null;
+          if (upg.done) return;
+          try {
+            var oldLayers = upg.scene.listLayers().slice();
+            var layer = upg.scene.createLayer({
+              source: Marzipano.ImageUrlSource.fromString(upg.fullUrl),
+              geometry: new Marzipano.EquirectGeometry([{ width: 4000 }]),
+              view: upg.view,
+            });
+            upg.done = true;
+            var canFade = false;
+            try { layer.mergeEffects({ opacity: 0 }); canFade = true; } catch (e) { /* swaps without the fade */ }
+            var dropOld = function () {
+              oldLayers.forEach(function (l) { try { upg.scene.destroyLayer(l); } catch (e) { /* already gone */ } });
+              setTimeout(function () { prefetchNextStop(upg.sid); }, 800);
+            };
+            var started = false;
+            var begin = function () {
+              if (started) return;
+              started = true;
+              if (!canFade) { setTimeout(dropOld, 400); return; }
+              // The sharp photo fades in over the soft one, so it reads as the picture coming into focus.
+              var t0 = Date.now(), dur = 700;
+              var timer = setInterval(function () {
+                var k = Math.min(1, (Date.now() - t0) / dur);
+                try { layer.mergeEffects({ opacity: k }); } catch (e) { k = 1; }
+                if (k >= 1) { clearInterval(timer); dropOld(); }
+              }, 40);
+            };
+            layer.addEventListener('textureStoreChange', begin);
+            setTimeout(function () {                    // if the texture never reports in, show the sharp photo anyway
+              if (started) return;
+              try { layer.mergeEffects({ opacity: 1 }); } catch (e) { /* nothing to restore */ }
+              started = true;
+              dropOld();
+            }, 10000);
+          } catch (e) { /* keep the smaller copy */ }
+        };
+        img.src = upg.fullUrl;
+      }, delay);
+    }
+
     if (tourParam) renderTourPage(tourParam);
 
     const isLocalPreview = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') && !tourParam;
@@ -1706,6 +1807,13 @@
           var tsStart = config._locStart || 0;
           tsActiveIdx = tsStart;
 
+          var tsThumbQueue = [], tsThumbsApplied = false;
+          var applyTsThumbs = function () {
+            if (tsThumbsApplied) return;
+            tsThumbsApplied = true;
+            tsThumbQueue.forEach(function (t) { t.el.style.backgroundImage = "url('" + t.url + "')"; });
+          };
+
           tsPhotos.forEach((p, idx) => {
             var view = new Marzipano.RectilinearView({ yaw: p.yaw || 0, pitch: p.pitch || 0, fov: Math.PI / 4 }, limiter);
             var geometry, source, thumbUrl;
@@ -1720,7 +1828,9 @@
               var tsFullUrl = 'tiles/' + siteId + '/' + (p._img || ('img' + (idx + 1))) + '.jpg';
               var tsImgUrl = rawImageUrl(tsFullUrl, p.mobile);
               source = Marzipano.ImageUrlSource.fromString(tsImgUrl);
-              thumbUrl = tsFullUrl;
+              // The strip only needs a small picture. The phone sized copy is about a quarter of the size, so use
+              // it for the thumbnail on any screen when the photo has one.
+              thumbUrl = p.mobile ? tsFullUrl.replace(/\.jpg$/i, '_mobile.jpg') : tsFullUrl;
               tsRawUrls.push(tsImgUrl);
             }
             var scene = viewerL.createScene({ source: source, geometry: geometry, view: view });
@@ -1731,7 +1841,8 @@
 
             var el = document.createElement('div');
             el.className = 'ts-thumb' + (idx === tsStart ? ' active' : '');
-            el.style.backgroundImage = "url('" + thumbUrl + "')";
+            // Thumbnails are filled in after the photo on screen has loaded, so they do not compete with it.
+            tsThumbQueue.push({ el: el, url: thumbUrl });
             var lbl = document.createElement('div');
             lbl.className = 'ts-thumb-label';
             lbl.textContent = p.thumb_label || p.label || ('Photo ' + (idx + 1));
@@ -1742,10 +1853,12 @@
 
           if (tsScenes.length) {
             if (tsRawUrls[tsStart]) {
-              preloadPanoThenRun(tsRawUrls[tsStart], 'left', function () { tsScenes[tsStart].switchTo(); });
+              preloadPanoThenRun(tsRawUrls[tsStart], 'left', function () { tsScenes[tsStart].switchTo(); applyTsThumbs(); });
+              setTimeout(applyTsThumbs, 8000); // a very slow connection still gets its thumbnails eventually
             } else {
               document.getElementById('pano-loading-left').classList.add('hidden');
               tsScenes[tsStart].switchTo();
+              applyTsThumbs();
             }
             document.getElementById('label-left').innerText = (tsPhotos[tsStart] && tsPhotos[tsStart].label) || ('Photo ' + (tsStart + 1));
           }
@@ -4421,6 +4534,8 @@
 
       var configCache = {};
       var sceneCache = {};
+      tourCaches.config = configCache;
+      tourCaches.scene = sceneCache;
       var siteLinkElements = {}; // site_id -> its sidebar link element, if it has one
       var tourNameForTitle = tourId; // updated once the manifest loads, used to keep
                                       // the browser tab title showing "Tour \u2014 Stop"
@@ -4800,6 +4915,7 @@
       }
 
       function loadStop(rawId) {
+        cancelStopUpgrade();
         var sid = rawId.trim().toLowerCase().replace(/[\s-]+/g, '_');
         var linkEl = siteLinkElements[sid];
         if (activeLink) activeLink.classList.remove('active');
@@ -4828,6 +4944,8 @@
           defaultViewL = cached.defaultView;
           activeTourScene = cached.scene;
           cached.scene.switchTo();
+          if (cached.upgrade && !cached.upgrade.done) startStopUpgrade(cached.upgrade);
+          else prefetchNextStop(sid);
           setTimeout(() => { viewerL.updateSize(); }, 100);
           document.getElementById('label-left').innerText = cached.label;
           document.title = tourNameForTitle + ' \u2014 ' + cached.label;
@@ -4873,21 +4991,35 @@
           if (facingYaw != null) defaultViewL.yaw = facingYaw;
           viewL = new Marzipano.RectilinearView(defaultViewL, limiter);
 
-          var geometry, source;
+          var geometry, source, stopUpgrade = null;
           if (isTiled) {
             geometry = new Marzipano.CubeGeometry(
                 (config.levels_1 && config.levels_1.length) ? config.levels_1 : [{ tileSize: 256, size: 256, fallbackOnly: true }, { tileSize: 512, size: 512 }, { tileSize: 512, size: 1024 }, { tileSize: 512, size: 2048 }]);
             source = Marzipano.ImageUrlSource.fromString('tiles/' + sid + '/' + (config._imgName || 'img1') + '/scene/{z}/{f}/{y}/{x}.jpg');
             document.getElementById('pano-loading-left').classList.add('hidden');
           } else {
-            geometry = new Marzipano.EquirectGeometry([{ width: rawEquirectWidth(config.mobile_1) }]);
-            var stopImgUrl = rawImageUrl('tiles/' + sid + '/' + (config._imgName || 'img1') + '.jpg', config.mobile_1);
+            var stopFullUrl = 'tiles/' + sid + '/' + (config._imgName || 'img1') + '.jpg';
+            var staged = !!config.mobile_1 && !isMobileDevice();  // a phone sized copy exists and this is a desktop screen
+            if (staged) {
+              // Show the phone sized copy first; the full photo replaces it once the stop has been on screen a moment.
+              var stopImgUrl = stopFullUrl.replace(/\.jpg$/i, '_mobile.jpg');
+              geometry = new Marzipano.EquirectGeometry([{ width: config.mobile_1 }]);
+              stopUpgrade = { sid: sid, scene: null, view: null, fullUrl: stopFullUrl, done: false };
+            } else {
+              geometry = new Marzipano.EquirectGeometry([{ width: rawEquirectWidth(config.mobile_1) }]);
+              var stopImgUrl = rawImageUrl(stopFullUrl, config.mobile_1);
+            }
             source = Marzipano.ImageUrlSource.fromString(stopImgUrl);
-            preloadPanoThenRun(stopImgUrl, 'left', function () {});
+            preloadPanoThenRun(stopImgUrl, 'left', function () {
+              if (activeTourSiteId !== sid) return;
+              if (stopUpgrade) startStopUpgrade(stopUpgrade);   // the next stop is fetched once this one is sharp
+              else prefetchNextStop(sid);
+            });
           }
 
           var scene = viewerL.createScene({ source: source, geometry: geometry, view: viewL });
           activeTourScene = scene;
+          if (stopUpgrade) { stopUpgrade.scene = scene; stopUpgrade.view = viewL; }
           // Keyed by site id, not a fixed '1' -- each stop's hotspots
           // need to land in their own pendingSlotHotspots entry, or
           // editing one stop's pins would bleed into whichever other
@@ -4910,7 +5042,7 @@
           // its tiles already loaded, instead of rebuilding the scene
           // and re-fetching every tile from scratch again.
           sceneCache[sid] = {
-            scene: scene, view: viewL, defaultView: defaultViewL,
+            scene: scene, view: viewL, defaultView: defaultViewL, upgrade: stopUpgrade,
             label: resolvedLabel, pinStyle: config.pin_style, heading: config.heading_offset || 0,
             headingKnown: config.heading_offset != null,
             // A flat stop force-hides both these buttons (see
