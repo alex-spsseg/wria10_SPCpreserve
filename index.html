@@ -744,6 +744,19 @@
       .pano-label { font-size: 12px; padding: 5px 10px; max-width: 70vw; }
       #label-right { top: 52px; }
     }
+    /* "Loading full resolution" pill shown while the sharp photo of a stop downloads behind the soft one. */
+    #hd-pill {
+      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+      display: none; align-items: center; gap: 10px; z-index: 30; pointer-events: none;
+      padding: 7px 14px 7px 12px; border-radius: 18px; font-size: 12px; font-weight: 600; color: #cfe6f1;
+      background: rgba(9, 17, 36, 0.78); border: 1px solid #019FC4; backdrop-filter: blur(3px);
+      opacity: 0; transition: opacity 0.35s ease;
+    }
+    #hd-pill.show { opacity: 1; }
+    #hd-pill .hd-bar { width: 90px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.18); overflow: hidden; }
+    #hd-pill .hd-fill { height: 100%; width: 0%; background: #019FC4; transition: width 0.25s linear; }
+    #hd-pill .hd-fill.indeterminate { width: 40%; animation: hdslide 1.1s ease-in-out infinite alternate; }
+    @keyframes hdslide { from { margin-left: 0; } to { margin-left: 60%; } }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -755,7 +768,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-15 17:49:32</div>
+  <div id="build-timestamp">Built 2026-10-15 18:01:34</div>
 
   <div id="status-banner"></div>
 
@@ -804,6 +817,7 @@
     <div id="curtain-slider"><div id="curtain-slider-handle">↔</div></div>
 
     <div id="timeseries-strip"></div>
+    <div id="hd-pill" aria-live="polite"><span class="hd-text">Loading full resolution</span><span class="hd-bar"><span class="hd-fill"></span></span></div>
 
     <div id="control-bar">
       <button id="control-bar-toggle" class="ctrl-btn" type="button" title="Menu">&#8942;</button>
@@ -900,7 +914,7 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    let rawSiteId = urlParams.get('site') || urlParams.get('well') || 'dji_20260624144303_0139_d';
+    let rawSiteId = urlParams.get('site') || urlParams.get('well') || 'img_20260624_094620_00_663';
     const siteId = rawSiteId.trim().toLowerCase().replace(/[\s-]+/g, '_');
 
     const tourParam = urlParams.get('tour');
@@ -962,6 +976,37 @@
     // The soft copy stays up at least this long before the sharp one fades in, so a fast connection does not
     // turn the swap into a flicker.
     var MIN_SOFT_MS = 1200;
+    var stopUpgradeAbort = null, hdPillHideTimer = null;
+    function showHdPill(frac, label) {
+      var pill = document.getElementById('hd-pill');
+      if (!pill) return;
+      clearTimeout(hdPillHideTimer);
+      pill.style.display = 'flex';
+      var fill = pill.querySelector('.hd-fill'), text = pill.querySelector('.hd-text');
+      if (label) {
+        fill.classList.remove('indeterminate');
+        fill.style.width = '100%';
+        text.textContent = label;
+      } else if (frac == null) {
+        fill.classList.add('indeterminate');
+        fill.style.width = '';
+        text.textContent = 'Loading full resolution';
+      } else {
+        fill.classList.remove('indeterminate');
+        var pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
+        fill.style.width = pct + '%';
+        text.textContent = 'Loading full resolution ' + pct + '%';
+      }
+      requestAnimationFrame(function () { pill.classList.add('show'); });
+      if (!window.requestAnimationFrame) pill.classList.add('show');
+    }
+    function hideHdPill() {
+      var pill = document.getElementById('hd-pill');
+      if (!pill) return;
+      pill.classList.remove('show');
+      clearTimeout(hdPillHideTimer);
+      hdPillHideTimer = setTimeout(function () { pill.style.display = 'none'; }, 400);
+    }
     // Putting the big photo on the graphics card takes a moment and can make a drag hitch, so the swap waits until
     // the viewer has stopped moving the picture (but never longer than about 10 seconds).
     var lastPanoInteraction = 0, panPointerDown = false;
@@ -1001,6 +1046,8 @@
     function cancelStopUpgrade() {
       clearTimeout(stopUpgradeTimer);
       stopUpgradeTimer = null;
+      if (stopUpgradeAbort) { try { stopUpgradeAbort.abort(); } catch (e) { /* already finished */ } stopUpgradeAbort = null; }
+      hideHdPill();
       if (stopUpgradeImg) {
         stopUpgradeImg.onload = null;
         stopUpgradeImg.onerror = null;
@@ -1047,13 +1094,19 @@
       stopUpgradeTimer = setTimeout(function () {
         var img = new Image();
         stopUpgradeImg = img;
+        var finishDownload = function () {
+          stopUpgradeAbort = null;
+          showHdPill(1, 'Sharpening');        // downloaded; the swap to the sharp photo is next
+        };
+        img.onerror = function () { stopUpgradeAbort = null; hideHdPill(); };
         img.onload = function () {
+          finishDownload();
           stopUpgradeImg = null;
           if (upg.done) return;
           // Decode the big image in the background first. Decoding about 100 megapixels on the spot, while the
           // viewer is on screen, is what makes the picture hitch.
           var swapIn = function () {
-          if (upg.done || activeTourSiteId !== upg.sid) return;
+          if (upg.done || activeTourSiteId !== upg.sid) { hideHdPill(); return; }
           try {
             var oldLayers = upg.scene.listLayers().slice();
             var layer = upg.scene.createLayer({
@@ -1066,6 +1119,7 @@
             var canFade = false;
             try { layer.mergeEffects({ opacity: 0 }); canFade = true; } catch (e) { /* swaps without the fade */ }
             var dropOld = function () {
+              hideHdPill();
               oldLayers.forEach(function (l) { try { upg.scene.destroyLayer(l); } catch (e) { /* already gone */ } });
               setTimeout(function () { prefetchNextStop(upg.sid); }, 800);
             };
@@ -1092,12 +1146,38 @@
               started = true;
               dropOld();
             }, 10000);
-          } catch (e) { /* keep the smaller copy */ }
+          } catch (e) { hideHdPill(); /* keep the smaller copy */ }
           };
           var afterDecode = function () { runWhenViewerIdle(swapIn); };
           if (img.decode) { img.decode().then(afterDecode, afterDecode); } else { afterDecode(); }
         };
-        img.src = upg.fullUrl;
+        // Read the file as a stream first so the pill can show real progress. The bytes land in the browser cache as they
+        // arrive, so the image load below is then served from the cache. If streaming is not available or fails, the
+        // plain image load still works, just without the progress bar.
+        var startImage = function () { if (stopUpgradeImg === img) img.src = upg.fullUrl; };
+        var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        stopUpgradeAbort = ctl;
+        showHdPill(null);
+        if (typeof fetch === 'function' && ctl) {
+          fetch(upg.fullUrl, { signal: ctl.signal }).then(function (res) {
+            if (!res.ok || !res.body || !res.body.getReader) throw new Error('no stream');
+            var total = parseInt(res.headers.get('Content-Length') || '0', 10);
+            var reader = res.body.getReader(), got = 0;
+            return (function pump() {
+              return reader.read().then(function (r) {
+                if (r.done) return;
+                got += r.value.length;
+                showHdPill(total ? got / total : null);
+                return pump();
+              });
+            })();
+          }).then(startImage, function (err) {
+            if (ctl.signal.aborted) return;       // the viewer moved on; nothing to do
+            startImage();                         // fall back to the plain load
+          });
+        } else {
+          startImage();
+        }
       }, delay);
     }
 

@@ -6,4 +6,4 @@ Live site: [All tours](https://alex-spsseg.github.io/wria10_SPCpreserve/tours.ht
 
 ## Tours
 
-- [2026 Bathymetry Survey (54cfs)](https://alex-spsseg.github.io/wria10_SPCpreserve/index.html?tour=20260624) (visited 2026-06-24, 57 stops)
+- [2026 Bathymetry Survey (54cfs)](https://alex-spsseg.github.io/wria10_SPCpreserve/index.html?tour=20260624) (visited 2026-06-24, 55 stops)
