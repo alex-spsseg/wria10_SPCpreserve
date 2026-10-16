@@ -744,19 +744,15 @@
       .pano-label { font-size: 12px; padding: 5px 10px; max-width: 70vw; }
       #label-right { top: 52px; }
     }
-    /* "Loading full resolution" pill shown while the sharp photo of a stop downloads behind the soft one. */
+    /* A quiet note, lower left, while the sharp photo of a stop downloads behind the soft one. */
     #hd-pill {
-      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-      display: none; align-items: center; gap: 10px; z-index: 30; pointer-events: none;
-      padding: 7px 14px 7px 12px; border-radius: 18px; font-size: 12px; font-weight: 600; color: #cfe6f1;
-      background: rgba(9, 17, 36, 0.78); border: 1px solid #019FC4; backdrop-filter: blur(3px);
-      opacity: 0; transition: opacity 0.35s ease;
+      position: fixed; left: 14px; bottom: 14px;
+      display: none; align-items: center; z-index: 30; pointer-events: none;
+      padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; letter-spacing: 0.02em;
+      color: rgba(207, 230, 241, 0.8); background: rgba(9, 17, 36, 0.5);
+      opacity: 0; transition: opacity 0.5s ease;
     }
     #hd-pill.show { opacity: 1; }
-    #hd-pill .hd-bar { width: 90px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.18); overflow: hidden; }
-    #hd-pill .hd-fill { height: 100%; width: 0%; background: #019FC4; transition: width 0.25s linear; }
-    #hd-pill .hd-fill.indeterminate { width: 40%; animation: hdslide 1.1s ease-in-out infinite alternate; }
-    @keyframes hdslide { from { margin-left: 0; } to { margin-left: 60%; } }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -768,7 +764,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-15 18:01:34</div>
+  <div id="build-timestamp">Built 2026-10-15 18:10:51</div>
 
   <div id="status-banner"></div>
 
@@ -817,7 +813,7 @@
     <div id="curtain-slider"><div id="curtain-slider-handle">↔</div></div>
 
     <div id="timeseries-strip"></div>
-    <div id="hd-pill" aria-live="polite"><span class="hd-text">Loading full resolution</span><span class="hd-bar"><span class="hd-fill"></span></span></div>
+    <div id="hd-pill" aria-live="polite"><span class="hd-text">Loading full resolution</span></div>
 
     <div id="control-bar">
       <button id="control-bar-toggle" class="ctrl-btn" type="button" title="Menu">&#8942;</button>
@@ -982,23 +978,16 @@
       if (!pill) return;
       clearTimeout(hdPillHideTimer);
       pill.style.display = 'flex';
-      var fill = pill.querySelector('.hd-fill'), text = pill.querySelector('.hd-text');
+      var text = pill.querySelector('.hd-text');
       if (label) {
-        fill.classList.remove('indeterminate');
-        fill.style.width = '100%';
         text.textContent = label;
       } else if (frac == null) {
-        fill.classList.add('indeterminate');
-        fill.style.width = '';
         text.textContent = 'Loading full resolution';
       } else {
-        fill.classList.remove('indeterminate');
-        var pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
-        fill.style.width = pct + '%';
-        text.textContent = 'Loading full resolution ' + pct + '%';
+        text.textContent = 'Loading full resolution ' + Math.max(0, Math.min(100, Math.round(frac * 100))) + '%';
       }
-      requestAnimationFrame(function () { pill.classList.add('show'); });
-      if (!window.requestAnimationFrame) pill.classList.add('show');
+      if (window.requestAnimationFrame) requestAnimationFrame(function () { pill.classList.add('show'); });
+      else pill.classList.add('show');
     }
     function hideHdPill() {
       var pill = document.getElementById('hd-pill');
