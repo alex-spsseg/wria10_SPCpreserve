@@ -755,7 +755,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-15 17:14:21</div>
+  <div id="build-timestamp">Built 2026-10-15 17:39:11</div>
 
   <div id="status-banner"></div>
 
@@ -954,6 +954,25 @@
     // a moment, is dropped if they move on, and is skipped on slow or data saving connections.
     var stopUpgradeTimer = null, stopUpgradeImg = null;
     var stopPrefetched = {}, stopPrefetchImgs = [];
+    // Set to false to go back to loading each stop's full photo directly, with no soft first look.
+    var STAGED_LOADING = true;
+    // On the local preview the files are on this computer's own disk and load instantly, so a soft first look
+    // would only show up as a flash. It is for visitors on the internet.
+    var onLocalPreviewHost = /^(127\.0\.0\.1|localhost|\[::1\])$/.test(location.hostname);
+    // The soft copy stays up at least this long before the sharp one fades in, so a fast connection does not
+    // turn the swap into a flicker.
+    var MIN_SOFT_MS = 1200;
+    // A photo this browser fetched in full a few minutes ago is still in its cache (the server allows 10 minutes),
+    // so showing the small copy first would only add a flash of softness. Remember what was loaded recently.
+    function fullLoadedRecently(url) {
+      try {
+        var t = parseInt(localStorage.getItem('fullpano:' + url) || '0', 10);
+        return t > 0 && (Date.now() - t) < 9 * 60 * 1000;
+      } catch (e) { return false; }
+    }
+    function markFullLoaded(url) {
+      try { localStorage.setItem('fullpano:' + url, String(Date.now())); } catch (e) { /* storage may be off */ }
+    }
     var tourCaches = { config: {}, scene: {} }; // the tour page's own caches, shared here once it starts
     function connectionIsSlow() {
       var conn = navigator.connection || {};
@@ -973,6 +992,8 @@
     // so pressing Next shows it almost at once. Skipped on slow or data saving connections.
     function prefetchNextStop(currentSid) {
       if (connectionIsSlow()) return;
+      // A desktop that loads full photos directly never uses the small copy, so there is nothing to fetch ahead.
+      if (!isMobileDevice() && (!STAGED_LOADING || onLocalPreviewHost)) return;
       var norm = function (x) { return String(x || '').trim().toLowerCase().replace(/[\s-]+/g, '_'); };
       var opts = tourSiteOptions || [];
       var i = -1;
@@ -996,6 +1017,7 @@
     }
     function startStopUpgrade(upg) {
       if (!upg || upg.done) return;
+      if (!upg.softAt) upg.softAt = Date.now();   // when the soft copy first became visible
       cancelStopUpgrade();
       if (connectionIsSlow()) return;
       var conn = navigator.connection || {};
@@ -1008,6 +1030,10 @@
         img.onload = function () {
           stopUpgradeImg = null;
           if (upg.done) return;
+          // Decode the big image in the background first. Decoding about 100 megapixels on the spot, while the
+          // viewer is on screen, is what makes the picture hitch.
+          var swapIn = function () {
+          if (upg.done || activeTourSiteId !== upg.sid) return;
           try {
             var oldLayers = upg.scene.listLayers().slice();
             var layer = upg.scene.createLayer({
@@ -1016,6 +1042,7 @@
               view: upg.view,
             });
             upg.done = true;
+            markFullLoaded(upg.fullUrl);
             var canFade = false;
             try { layer.mergeEffects({ opacity: 0 }); canFade = true; } catch (e) { /* swaps without the fade */ }
             var dropOld = function () {
@@ -1028,12 +1055,15 @@
               started = true;
               if (!canFade) { setTimeout(dropOld, 400); return; }
               // The sharp photo fades in over the soft one, so it reads as the picture coming into focus.
-              var t0 = Date.now(), dur = 700;
-              var timer = setInterval(function () {
-                var k = Math.min(1, (Date.now() - t0) / dur);
-                try { layer.mergeEffects({ opacity: k }); } catch (e) { k = 1; }
-                if (k >= 1) { clearInterval(timer); dropOld(); }
-              }, 40);
+              var runFade = function () {
+                var t0 = Date.now(), dur = 700;
+                var timer = setInterval(function () {
+                  var k = Math.min(1, (Date.now() - t0) / dur);
+                  try { layer.mergeEffects({ opacity: k }); } catch (e) { k = 1; }
+                  if (k >= 1) { clearInterval(timer); dropOld(); }
+                }, 40);
+              };
+              setTimeout(runFade, Math.max(0, MIN_SOFT_MS - (Date.now() - (upg.softAt || 0))));
             };
             layer.addEventListener('textureStoreChange', begin);
             setTimeout(function () {                    // if the texture never reports in, show the sharp photo anyway
@@ -1043,6 +1073,8 @@
               dropOld();
             }, 10000);
           } catch (e) { /* keep the smaller copy */ }
+          };
+          if (img.decode) { img.decode().then(swapIn, swapIn); } else { swapIn(); }
         };
         img.src = upg.fullUrl;
       }, delay);
@@ -4999,7 +5031,9 @@
             document.getElementById('pano-loading-left').classList.add('hidden');
           } else {
             var stopFullUrl = 'tiles/' + sid + '/' + (config._imgName || 'img1') + '.jpg';
-            var staged = !!config.mobile_1 && !isMobileDevice();  // a phone sized copy exists and this is a desktop screen
+            // a phone sized copy exists, this is a desktop screen, and the full photo is not already cached
+            var staged = STAGED_LOADING && !onLocalPreviewHost && !!config.mobile_1 && !isMobileDevice() &&
+                         !fullLoadedRecently(stopFullUrl);
             if (staged) {
               // Show the phone sized copy first; the full photo replaces it once the stop has been on screen a moment.
               var stopImgUrl = stopFullUrl.replace(/\.jpg$/i, '_mobile.jpg');
@@ -5011,6 +5045,7 @@
             }
             source = Marzipano.ImageUrlSource.fromString(stopImgUrl);
             preloadPanoThenRun(stopImgUrl, 'left', function () {
+              if (!staged && !isMobileDevice() && config.mobile_1) markFullLoaded(stopFullUrl);
               if (activeTourSiteId !== sid) return;
               if (stopUpgrade) startStopUpgrade(stopUpgrade);   // the next stop is fetched once this one is sharp
               else prefetchNextStop(sid);

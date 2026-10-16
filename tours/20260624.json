@@ -350,6 +350,13 @@
   "basemap_url": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
   "overlays": [
     {
+      "label": "Ortho (6/24/2026, 54cfs)",
+      "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/SPCpreserve_20260624_RM32_52_ortho/MapServer/tile/{z}/{y}/{x}",
+      "opacity": 1.0,
+      "default_on": true,
+      "type": "tile"
+    },
+    {
       "label": "Ortho (1/21/2026, 265cfs)",
       "url": "https://tiles.arcgis.com/tiles/buuvDFFARQiOEbVZ/arcgis/rest/services/SPCpreserve_20260121_jp2/MapServer/tile/{z}/{y}/{x}",
       "opacity": 1.0,
