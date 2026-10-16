@@ -755,7 +755,7 @@
 </head>
 <body>
 
-  <div id="build-timestamp">Built 2026-10-15 17:39:11</div>
+  <div id="build-timestamp">Built 2026-10-15 17:49:32</div>
 
   <div id="status-banner"></div>
 
@@ -962,6 +962,26 @@
     // The soft copy stays up at least this long before the sharp one fades in, so a fast connection does not
     // turn the swap into a flicker.
     var MIN_SOFT_MS = 1200;
+    // Putting the big photo on the graphics card takes a moment and can make a drag hitch, so the swap waits until
+    // the viewer has stopped moving the picture (but never longer than about 10 seconds).
+    var lastPanoInteraction = 0, panPointerDown = false;
+    (function () {
+      var opts = { capture: true, passive: true };
+      window.addEventListener('pointerdown', function () { panPointerDown = true; lastPanoInteraction = Date.now(); }, opts);
+      window.addEventListener('pointerup', function () { panPointerDown = false; lastPanoInteraction = Date.now(); }, opts);
+      window.addEventListener('pointercancel', function () { panPointerDown = false; }, opts);
+      window.addEventListener('pointermove', function (e) { if (e.buttons > 0 || panPointerDown) lastPanoInteraction = Date.now(); }, opts);
+      window.addEventListener('wheel', function () { lastPanoInteraction = Date.now(); }, opts);
+      window.addEventListener('touchmove', function () { lastPanoInteraction = Date.now(); }, opts);
+      window.addEventListener('keydown', function () { lastPanoInteraction = Date.now(); }, opts);
+    })();
+    function runWhenViewerIdle(fn) {
+      var started = Date.now();
+      (function check() {
+        var idle = !panPointerDown && (Date.now() - lastPanoInteraction) > 700;
+        if (idle || Date.now() - started > 10000) fn(); else setTimeout(check, 200);
+      })();
+    }
     // A photo this browser fetched in full a few minutes ago is still in its cache (the server allows 10 minutes),
     // so showing the small copy first would only add a flash of softness. Remember what was loaded recently.
     function fullLoadedRecently(url) {
@@ -1074,7 +1094,8 @@
             }, 10000);
           } catch (e) { /* keep the smaller copy */ }
           };
-          if (img.decode) { img.decode().then(swapIn, swapIn); } else { swapIn(); }
+          var afterDecode = function () { runWhenViewerIdle(swapIn); };
+          if (img.decode) { img.decode().then(afterDecode, afterDecode); } else { afterDecode(); }
         };
         img.src = upg.fullUrl;
       }, delay);
