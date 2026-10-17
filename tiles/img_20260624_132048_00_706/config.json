@@ -10,7 +10,19 @@
   "label_1": "IMG_20260624_132048_00_706 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 3.443323251064553,
+      "pitch": 0.0,
+      "title": "Stop 42",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_132005_00_705",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +33,7 @@
   "mobile_2": 0,
   "heading_offset": 167.52233069445992,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 92.91
 }

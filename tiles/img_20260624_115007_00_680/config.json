@@ -10,7 +10,19 @@
   "label_1": "IMG_20260624_115007_00_680 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 2.64101873546911,
+      "pitch": 0.0,
+      "title": "Stop 16",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_114221_00_679",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +33,7 @@
   "mobile_2": 0,
   "heading_offset": 250.32240949964557,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 100.09
 }

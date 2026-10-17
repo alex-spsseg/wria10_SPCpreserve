@@ -10,7 +10,41 @@
   "label_1": "IMG_20260624_110954_00_676 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 3.0473403412602638,
+      "pitch": 0.0,
+      "title": "Stop 1",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_094620_00_663",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 3.943586005240173,
+      "pitch": 0.0,
+      "title": "Stop 2",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_094651_00_664",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 6.2364840655394,
+      "pitch": 0.0,
+      "title": "Stop 10",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_105605_00_673",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +55,7 @@
   "mobile_2": 0,
   "heading_offset": 92.48770411676173,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 102.42
 }

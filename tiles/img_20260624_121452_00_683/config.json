@@ -10,7 +10,19 @@
   "label_1": "IMG_20260624_121452_00_683 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 1.621438077096173,
+      "pitch": 0.0,
+      "title": "Stop 21",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_122223_00_684",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +33,7 @@
   "mobile_2": 0,
   "heading_offset": 180.1759634899987,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 97.97
 }

@@ -10,7 +10,19 @@
   "label_1": "IMG_20260624_155149_00_718 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 0.2072585011252439,
+      "pitch": 0.0,
+      "title": "Stop 54",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_155118_00_717",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +33,7 @@
   "mobile_2": 0,
   "heading_offset": 47.14457638667898,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 89.36
 }

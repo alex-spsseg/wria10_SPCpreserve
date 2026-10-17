@@ -10,7 +10,19 @@
   "label_1": "IMG_20260624_111350_00_677 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 0.973329778833754,
+      "pitch": 0.0,
+      "title": "Stop 15",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_112630_00_678",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +33,7 @@
   "mobile_2": 0,
   "heading_offset": 133.4854727827983,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 101.12
 }

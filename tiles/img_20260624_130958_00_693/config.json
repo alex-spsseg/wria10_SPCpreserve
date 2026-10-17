@@ -10,7 +10,30 @@
   "label_1": "IMG_20260624_130958_00_693 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 6.109398230957431,
+      "pitch": 0.0,
+      "title": "Stop 31",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_131106_00_694",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 3.396315772864591,
+      "pitch": 0.0,
+      "title": "Stop 29",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_130913_00_692",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],
@@ -21,5 +44,7 @@
   "mobile_2": 0,
   "heading_offset": 245.75738561199807,
   "overlays": [],
-  "heading_confirmed": true
+  "heading_confirmed": true,
+  "alt_checked": true,
+  "alt": 95.88
 }
