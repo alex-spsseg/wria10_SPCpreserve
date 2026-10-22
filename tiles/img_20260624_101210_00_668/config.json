@@ -10,7 +10,30 @@
   "label_1": "IMG_20260624_101210_00_668 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 5.263910996657358,
+      "pitch": 0.0,
+      "title": "Stop 6 \u00b7 63 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_101956_00_669",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 4.953595307731748,
+      "pitch": 0.0,
+      "title": "Stop 7 \u00b7 66 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_102141_00_670",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],

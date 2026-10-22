@@ -10,7 +10,19 @@
   "label_1": "IMG_20260624_120307_00_681 (2026/06/24)",
   "label_2": "",
   "autorotate": false,
-  "hotspots_1": [],
+  "hotspots_1": [
+    {
+      "yaw": 3.1519816384798096,
+      "pitch": 0.0,
+      "title": "Stop 17 \u00b7 61 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_115007_00_680",
+      "link_icon": "ground"
+    }
+  ],
   "hotspots_2": [],
   "levels_1": [],
   "levels_2": [],

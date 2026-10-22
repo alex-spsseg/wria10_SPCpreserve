@@ -13,8 +13,8 @@
   "hotspots_1": [
     {
       "yaw": 6.109398230957431,
-      "pitch": -0.027022322996576094,
-      "title": "Stop 31",
+      "pitch": 0.0,
+      "title": "Stop 31 \u00b7 29 m",
       "text": "",
       "link": "",
       "category": "link",
@@ -24,13 +24,24 @@
     },
     {
       "yaw": 3.396315772864591,
-      "pitch": 0.007773098725241022,
-      "title": "Stop 29",
+      "pitch": 0.0,
+      "title": "Stop 29 \u00b7 48 m",
       "text": "",
       "link": "",
       "category": "link",
       "pin_style": "label_hover",
       "target": "img_20260624_130913_00_692",
+      "link_icon": "ground"
+    },
+    {
+      "yaw": 0.8888269219599563,
+      "pitch": 0.0,
+      "title": "Stop 45 \u00b7 68 m",
+      "text": "",
+      "link": "",
+      "category": "link",
+      "pin_style": "label_hover",
+      "target": "img_20260624_132842_00_708",
       "link_icon": "ground"
     }
   ],
