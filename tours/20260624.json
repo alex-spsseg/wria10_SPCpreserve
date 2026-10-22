@@ -414,5 +414,6 @@
   ],
   "forward_label": "Forward",
   "backward_label": "Back",
+  "map_start_zoom": 16,
   "field_visit_date": "2026-06-24"
 }
